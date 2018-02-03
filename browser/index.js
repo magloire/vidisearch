@@ -9,7 +9,13 @@ var ReactDOM = require('react-dom');
 
 var reproject = require('reproject');
 
+var proj4 = require('proj4');
+
+var wktParser = require('terraformer-wkt-parser');
+
 var cloud;
+
+var layerGroup = L.layerGroup();
 
 var utils;
 
@@ -19,11 +25,17 @@ var exId = "mainSearch";
 
 var backboneEvents;
 
+var crss = {
+    "from" : "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs",
+    "to"   : "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
+};
+
 module.exports = {
     set: function (o) {
         cloud = o.cloud;
         utils = o.utils;
         backboneEvents = o.backboneEvents;
+        mapObj = cloud.get().map;
 
     },
 
@@ -56,7 +68,6 @@ module.exports = {
                 temp = searchTerm.split(" ").slice(0,-1);
                 postnr = temp.pop();
                 navn = temp.join(" ");
-              //  let url = `https://dawa.aws.dk/vejstykker?postnr=${postnr}&navn=${navn}&kommunekode=151|159|163|240|161&srid=25832&format=geojson`;
                 let url = `https://dawa.aws.dk/adgangsadresser/autocomplete?q=${searchTerm}&type=adgangsadresse&side=1&per_side=105&noformat=1&kommunekode=151|159|163|240|161`
                 return new Promise(function(resolve, reject){
                     $.getJSON(url, function(data){
@@ -81,6 +92,7 @@ module.exports = {
 
         
         var MatrikelSearcher = {
+            matrWkt :  {}, 
             search: function(searchTerm){
                 if(!searchTerm){
                     searchTerm = "a b c d e f g h i j k l m 1 2 3 4 5 6";
@@ -90,19 +102,43 @@ module.exports = {
                            "&search="+ searchTerm +
                            "&login=magloire&password=Kort_1234";
 
+                let me = this;           
                 return new Promise(function(resolve, reject){
-                $.getJSON(url, function(data){
-                        let res = data.data.map((item) => {
-                            let it = item.matrnr + ", " + item.elavsnavn ;
-                        return it;
-                        });
-                        resolve(res);
-                });
+                    $.getJSON(url, function(data){
+                            let res = data.data.map((item) => {
+                                let it = item.matrnr + ", " + item.elavsnavn ;
+                                me.matrWkt[it] = item.geometryWkt_detail;
+                            return it;
+                            });
+                            resolve(res);
+                    });
                 })
                 
             },
 
             handleSearch: function(searchTerm){
+                let me = this;
+                let wkt = me.matrWkt[searchTerm];
+                let geojson = wktParser.parse(wkt);
+                geojson = JSON.parse(JSON.stringify(geojson)); 
+                geojson = reproject.toWgs84(geojson, "from", crss);
+                console.log(JSON.stringify(geojson));        
+                let myLayer = L.geoJson(geojson,{
+                    "color": "blue",
+                    "weight": 1,
+                    "opacity": 1,
+                    "fillOpacity": 0.1,
+                    "dashArray": '5,3'
+                });
+
+                 layerGroup.clearLayers();
+                 layerGroup.addLayer(myLayer).addTo(mapObj);
+                
+                 /*  hack in order to center the map...   */ 
+                let point = geojson.coordinates[0][0];
+                    point = [point[1],point[0]];
+                mapObj.setView(point, 17);
+
                 return new Promise(function(resolve, reject){
                     let data = [searchTerm];
                     let comp = <div> 
@@ -150,7 +186,6 @@ module.exports = {
             }
 
             render(){
-              //  console.log(this.props.value, this.props.hrf);
                return <a id={this.props.hrf} href="#" className="list-group-item">
                     {this.props.value}
                 </a>
@@ -167,24 +202,20 @@ module.exports = {
             }
 
             handleClk(e){
-                //console.log(e.target.id);
                 let map = cloud.get().map;
                 $.getJSON(e.target.id, function(data){
-                   // console.log(data.adgangspunkt.koordinater);
                     let coords = data.adgangspunkt.koordinater;
                     coords = [coords[1],coords[0]];
                     console.log(coords);
-                    var marker = L.marker(coords).addTo(map);
-                    map.setView(coords,17);
+                    var marker = L.marker(coords).addTo(mapObj);
+                    mapObj.setView(coords,17);
                 });
             }
 
             render(){
                 const items = this.props.items;
                 let me = this;
-                //console.log(items);
                 const searchItems = items.map((item) => {
-                    //console.log(item);
                     return <AdresseItem key={item.tekst.toString()} hrf={item.href} value={item.tekst}/>
                 });
 
@@ -326,7 +357,7 @@ module.exports = {
 
                                     <div className="btn-group">
                                         <input id="my-search" className="custom-search typeahead" type="text"
-                                            placeholder="search" onChange={this.handleChange} onMouseEnter={this.handleChange}>
+                                            placeholder="search" onChange={this.handleChange}>
                                             
                                         </input>
                                         
