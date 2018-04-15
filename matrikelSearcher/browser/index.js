@@ -99,7 +99,6 @@ module.exports = {
     },
 
     test: function(){
-        console.log('hello from matrikelSearcher');
     },
 
     search: function(searchTerm){
@@ -109,7 +108,7 @@ module.exports = {
         let url = "https://kortforsyningen.kms.dk/Geosearch?service=GEO&limit=20&resources=matrikelnumre"+
                    "&area=muncode0173%2Cmuncode0157%2Cmuncode0230%2Cmuncode0159%2Cmuncode0151%2Cmuncode0163"+
                    "&search="+ searchTerm +
-                   "&login=magloire&password=Kort_1234";
+                   "&login=xxxx&password=xxxx";
 
         let me = this;           
         return new Promise(function(resolve, reject){
@@ -117,7 +116,7 @@ module.exports = {
                     let res = data.data.map((item) => {
                         let it = item.matrnr + ", " + item.elavsnavn ;
                         matrWkt[it] = item.geometryWkt_detail;
-                    return it;
+                    return {title: it, id: it};
                     });
                     resolve(res);
             });
@@ -131,7 +130,6 @@ module.exports = {
         let geojson = wktParser.parse(wkt);
         geojson = JSON.parse(JSON.stringify(geojson)); 
         geojson = reproject.toWgs84(geojson, "from", crss);
-        console.log(JSON.stringify(geojson));        
         let myLayer = L.geoJson(geojson,{
             "color": "blue",
             "weight": 1,

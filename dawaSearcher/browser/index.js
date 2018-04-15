@@ -55,17 +55,23 @@ class AdresseList extends React.Component{
 
     handleClk(e){
         let map = cloud.get().map;
+       // console.log(this.state.items);
+        let items = this.state.items.filter((item) => {
+           // console.log(item.hrf);
+            return item.href === e.target.id;
+        });
+        this.setState({items : items});
         $.getJSON(e.target.id, function(data){
             let coords = data.adgangspunkt.koordinater;
             coords = [coords[1],coords[0]];
-            console.log(coords);
+          //  console.log(coords);
             var marker = L.marker(coords).addTo(mapObj);
             mapObj.setView(coords,17);
         });
     }
 
     render(){
-        const items = this.props.items;
+        const items = this.state.items;
         let me = this;
         const searchItems = items.map((item) => {
             return <AdresseItem key={item.tekst.toString()} hrf={item.href} value={item.tekst}/>
@@ -97,18 +103,18 @@ module.exports = {
         if(searchTerm){
             searchTerm = searchTerm + '*';
         }
-        let url = `https://dawa.aws.dk/vejnavne?q=${searchTerm}&side=1&per_side=10&kommunekode=151|159|163|240|161`;
+        let url = `https://dawa.aws.dk/vejnavne?q=${searchTerm}&side=1&per_side=100&kommunekode=151|159|163|240|161`;
        
        return new Promise(function(resolve, reject){
            $.getJSON(url, function(data){
-                let res = data.map((item) => {
+                let res = data.map((item, index) => {
                     let it = item.navn + " " 
-                    + item.postnumre[0]['nr'] 
+                    + ((item.postnumre[0]/* && item.postnumre[0]['nr']*/)? item.postnumre[0]['nr']:'') 
                     + " " 
-                    + item.postnumre[0]['navn'];
-                return it;
+                    + ((item.postnumre[0]/* && item.postnumre[0]['navn']*/)? item.postnumre[0]['navn']: '');
+               return {'title' : it, 'id': it};
                 });
-                resolve(res);
+                resolve([...new Set(res)]);
            });
         })
     },

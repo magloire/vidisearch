@@ -32,10 +32,12 @@ var config = require('../../../config/config.js');
 
 var dawaSearcher = require('../../dawaSearcher/browser/index.js');
 var matrikelSearcher = require('../../matrikelSearcher/browser/index.js');
+var planSearcher = require('../../planSearcher/browser/index.js');
 
 var _searchers = {
     dawa: {'searcher':dawaSearcher,'title':'Adresser'},
-    matrikel: {'searcher':matrikelSearcher, 'title':'Matrikler'}
+    matrikel: {'searcher':matrikelSearcher, 'title':'Matrikler'},
+    plan: {'searcher':planSearcher, 'title':'Lokalplaner'}
 };
 
 //var dawaS = require('../../dawaSearcher/browser/index.js');
@@ -59,7 +61,7 @@ module.exports = {
         
         
 
-        var currentSearcher = null;
+        var currentSearcher = {};
 
         class SearchItem extends React.Component{
             constructor(props){
@@ -67,12 +69,17 @@ module.exports = {
             }
 
             render(){
-                return <a id={this.props.searcher+':'+this.props.value} href="#" className="list-group-item">                           
+                return <a id={this.props.searcher+':'+this.props.id} href="#" className="list-group-item">                           
                                 {this.props.value}
                         </a>;             
             }
                 
             
+        }
+        class SearcherText extends React.Component{
+            constructor(props){
+                super(props);
+            }
         }
 
         class SearchList extends React.Component{
@@ -89,6 +96,7 @@ module.exports = {
             onItemClick(e){
              //   console.log(e.target.id); 
                 let searcher = searchers[this.props.searcher];
+                
                 let me = this;
                 searcher.handleSearch(e.target.id).then(function(fulfilled){
                     let items = fulfilled.map((item) => {
@@ -101,7 +109,7 @@ module.exports = {
                 const items = this.props.items;
                 let me = this;
                 const searchItems = items.map((item) =>
-                    <SearchItem key={item.toString()} searcher={me.props.searcher} value={item}/>
+                    <SearchItem key={item.id.toString()} id={item.id.toString()} searcher={me.props.searcher} value={item.title}/>
                 );
 
                 
@@ -118,7 +126,7 @@ module.exports = {
                 super(props);
 
                 this.state = {
-                    
+                    currentSearcherName:'',
                     dataReady:false,
                     searchTerm: '',
                     searchResults: {},
@@ -132,6 +140,16 @@ module.exports = {
                
                 this.handleChange = this.handleChange.bind(this);
                 this.handleClick = this.handleClick.bind(this);
+                this.handleSearcherClick = this.handleSearcherClick.bind(this);
+            }
+
+            handleSearcherClick(e){
+                this.setState({currentSearcherName : ''});
+                currentSearcher = {};
+                this.doSearch(currentSearcher, this.state.searchTerm);
+                /*
+                    TODO: trigger onChange event, 
+                */
             }
 
             handleClick(e){
@@ -139,7 +157,15 @@ module.exports = {
                 let _searcher, searchTerm;
                 [_searcher,searchTerm] = e.target.id.split(':');
                 let searcher = this.searchers[_searcher]['searcher'];
-
+                me.setState({searchTerm : searchTerm});
+                /* 
+                    set the currentSearcher. From now on, only this searcher will be called 
+                    when the user writes in the input box.
+                */
+                // console.log('currentSEarhcer :' + _searcher);
+                me.setState({currentSearcherName : _searcher});
+                
+                currentSearcher[_searcher] = this.searchers[_searcher];
                 searcher.handleSearch(searchTerm).then((res) => {
                     me.setState({searchRes : res});
                     me.setState({searchReady : false});
@@ -152,11 +178,55 @@ module.exports = {
             handleChange(e){
                 var me = this;
                 let val = e.target.value; 
+                let _res = {}; //Object.assign({}, me.state.searchResults);
+                /* 
+                    call the currentSearcher if it has been selected by the user, otherwise
+                    call all searchers.
+                */
+                me.setState({searchTerm : val});
+                let currentSearchers = {};
+                if(Object.keys(currentSearcher).length > 0){ //console.log('greater than 0')
+                    currentSearchers = currentSearcher;
+                    //console.log(currentSearchers);
+                }else{ //console.log('equal to 0')
+                    currentSearchers = me.searchers;
+                }
+
+                me.doSearch(currentSearchers, val);
+            }
+
+            doSearch(_searchers, _searchTerm){
+                var me = this;// console.log('searchTerm:',_searchTerm);
+                let _res = {};
+                Object.keys(_searchers).map((key) => { //console.log('searcher =>', _searchers[key]['searcher']);
+                _searchers[key]['searcher'].search(_searchTerm).then(function(fulfilled){
+                    _res[key] = fulfilled;  //console.log(fulfilled);
+                    me.setState({searchResults : _res});
+                    me.setState({searchReady: true});
+                    });
+                   // console.log(me.state.searchResults);
+                })
+            }
+
+            handleChange1(e){
+                var me = this;
+                let val = e.target.value; 
                 let _res = Object.assign({}, me.state.searchResults);
-               Object.keys(me.searchers).map((key) => { 
-                   me.searchers[key]['searcher'].search(val).then(function(fulfilled){
-                    _res[key] = fulfilled; 
-                    me.setState({searchResults : _res}); 
+                /* 
+                    call the currentSearcher if it has been selected by the user, otherwise
+                    call all searchers.
+                */
+                let currentSearchers = {};
+                if(Object.keys(currentSearcher).length > 0){ //console.log('greater than 0')
+                    currentSearchers = currentSearcher;
+                    //console.log(currentSearchers);
+                }else{ //console.log('equal to 0')
+                    currentSearchers = me.searchers;
+                }
+               Object.keys(currentSearchers).map((key) => { //console.log('searcher =>', key);
+                   currentSearchers[key]['searcher'].search(val).then(function(fulfilled){
+                    _res[key] = fulfilled;  //console.log(fulfilled);
+                    me.setState({searchResults : _res});
                     me.setState({searchReady: true});
                     });
                 })
@@ -172,7 +242,7 @@ module.exports = {
                 let k = ['matrikelnr']
                
                 let searchRes = this.state.searchRes;
-
+                let searcherButton = '';
                 if(this.state.searchReady){
                    
                     let _keys = Object.keys(this.state.searchResults);
@@ -191,6 +261,14 @@ module.exports = {
                     
                 }
 
+                if(this.state.currentSearcherName){
+                    searcherButton = <button type="button" onClick={this.handleSearcherClick} className="btn btn-info">
+                                        {this.state.currentSearcherName} <span className="glyphicon glyphicon-remove"></span>
+                                    </button>
+                }else{ //console.log('searcherName empty');
+                }
+
+
                 return (
                     <div role="tabpanel">
                         <div className="panel panel-default">
@@ -203,6 +281,8 @@ module.exports = {
                                             placeholder="search" onChange={this.handleChange}>
                                             
                                         </input>
+                                        {searcherButton}
+                                        
                                         
                                     </div>
 
