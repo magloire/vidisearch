@@ -42,7 +42,7 @@ title will be used to populate the autocomple list. And id is what will be sent 
                             <ul></ul>
                         </div>
         
-        return
+        resolve(reactComp);
        
        });
      } 
