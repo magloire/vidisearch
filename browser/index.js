@@ -160,7 +160,7 @@ module.exports = {
                                      searcher={searcher}   
                     />;
                 });
-                return <div className="list-group">{list}</div>;
+                return <div onClick={this.props.onAdd} className="list-group">{list}</div>;
             }
         }
 
@@ -191,6 +191,7 @@ module.exports = {
 
                 this.state = {
                     currentSearcherName:'',
+                    compontInCharge: 'mainSearch',
                     dataReady:false,
                     searchTerm: '',
                     searchResults: {},
@@ -202,6 +203,7 @@ module.exports = {
 
                 
                 this.searchers = _searchers;
+                this.componentsToRender = [];
                
                 this.handleChange = this.handleChange.bind(this);
                 this.handleClick = this.handleClick.bind(this);
@@ -216,6 +218,13 @@ module.exports = {
             }
 
             renderListOfSearchers(){
+                let searcherNames = Object.keys(this.searchers);
+                return <SearchersList searchers={searcherNames}
+                                      onAdd={this.selectSearcher}  
+                />;
+            }
+
+            getInitialView(){
                 let searcherNames = Object.keys(this.searchers);
                 return <SearchersList searchers={searcherNames}/>;
             }
@@ -256,7 +265,7 @@ module.exports = {
             selectSearcher(e){ 
                 var me = this; //console.log(me);
                // console.log(e.target.id);
-                let _searcher = e.target.id.split(':')[0];
+                let _searcher = e.target.id; console.log('searcher selected : ', _searcher);
                // let searcher = _searchers[_searcher]['searcher']; console.log(searcher);
                 let searcher = {}; 
                 searcher[_searcher] = _searchers[_searcher];
@@ -307,7 +316,7 @@ module.exports = {
              *
              * @returns {XML}
              */
-            render() {
+            render1() {
                
                 let k = ['matrikelnr']
                
@@ -380,6 +389,81 @@ module.exports = {
 
                                 </div>
                                 
+                                {searchRes}
+
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            getComponentsToRender(){ //console.log('I was called');
+                let searcherNames = Object.keys(this.state.searchResults);
+                let _length = searcherNames.length;
+                if(_length == 0) return [];
+                let comps = searcherNames.map(name => { console.log('key to render : ', name);
+                    let items = _length == 1 ? this.state.searchResults[name] : this.state.searchResults[name].slice(0,5);    
+                    let title = _length == 1 ? '' :<h5>{this.searchers[name]['title']}</h5>; 
+                    let list =  <div>
+                                    {title}
+                                    <SearchList items={items} 
+                                                searcher={name}
+                                                onAdd={this.handleClick}  
+                                    />
+                                </div>
+                              ;
+                    return list;
+                });
+                return comps;
+            }
+            render(){
+                /*
+                TODO:
+                1. handle the initial state where there is no searchResults yet.
+                    here we should render the list of all available searchers.
+
+                2. When there is not yet set a  searcherName, but there are some searchResults,
+                   remove from ListOfSearchers, those with no results.
+
+                3. Set a primary searcher. preferably in config.js. Initially only show results
+                   from the primary searcher and the list of searchers.
+
+                4 Use the componentInCharge instead of searchReady for readability.
+                */
+                let searchRes = this.state.searchRes;
+                if(this.state.searchReady){
+                    let listOfSearchers = (this.state.currentSearcherName)? '' : this.renderListOfSearchers();
+                    let comps = this.getComponentsToRender();
+                    console.log('components : ',comps.length);
+                    searchRes = <div className="res">
+                                        {listOfSearchers}
+                                        {comps}
+                                    </div>;
+                }
+                let searcherButton = '';
+                if(this.state.currentSearcherName){
+                    searcherButton = <button type="button" onClick={this.handleSearcherClick} className="btn btn-info">
+                                        {this.state.currentSearcherName} <span className="glyphicon glyphicon-remove"></span>
+                                    </button>
+                }
+                return (
+                    <div role="tabpanel">
+                        <div className="panel panel-default">
+                            <div className="panel-body">
+
+                                <div className="form-group">
+
+                                    <div className="btn-group">
+                                        <input id="my-search" className="custom-search typeahead" type="text"
+                                            placeholder="search" onChange={this.handleChange}>
+                                            
+                                        </input>
+                                        {searcherButton}
+                                        
+                                        
+                                    </div>
+
+                                </div>
                                 {searchRes}
 
                             </div>
