@@ -117,7 +117,7 @@ module.exports = {
         let url = "https://kortforsyningen.kms.dk/Geosearch?service=GEO&limit=100&resources=matrikelnumre"+
                    "&area=muncode0173%2Cmuncode0157%2Cmuncode0230%2Cmuncode0159%2Cmuncode0151%2Cmuncode0163"+
                    "&search="+ searchTerm +
-                   "&login=magloire&password=Kort_1234";
+                   "&login=xxxx&password=xxxx";
 
         let me = this;           
         return new Promise(function(resolve, reject){
