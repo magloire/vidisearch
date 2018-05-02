@@ -27,20 +27,8 @@ var backboneEvents;
 
 var config = require('../../../config/config.js');
 
-//var _searchers = config.extensionConfig.mainSearch.searchers;
+var _searchers = {};
 
-
-var dawaSearcher = require('../../dawaSearcher/browser/index.js');
-var matrikelSearcher = require('../../matrikelSearcher/browser/index.js');
-var planSearcher = require('../../planSearcher/browser/index.js');
-
-var _searchers = {
-    dawa: {'searcher':dawaSearcher,'title':'Adresser'},
-    matrikel: {'searcher':matrikelSearcher, 'title':'Matrikler'},
-    plan: {'searcher':planSearcher, 'title':'Lokalplaner'}
-};
-
-//var dawaS = require('../../dawaSearcher/browser/index.js');
 var crss = {
     "from" : "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs",
     "to"   : "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
@@ -54,6 +42,18 @@ module.exports = {
         mapObj = cloud.get().map;
 
     },
+    /**
+     * Searchers will call this function to register themeselves.
+     * 
+     * @argument searcher 
+     * {
+     *  "key" : "dawa",
+     *  "obj" : {"searcher" : this, "title":"Adresser"} 
+     * }
+     */
+    registerSearcher: function(searcher){
+        _searchers[searcher['key']] = searcher['obj'];
+    },
 
     init: function(){
         utils.createMainTab(exId, __("Main Search!"), __("Search prototype...."), require('./../../../browser/modules/height')().max); 
@@ -66,11 +66,34 @@ module.exports = {
         class SearchItem extends React.Component{
             constructor(props){
                 super(props);
+
+                this.state = {
+                    hover: false
+                }
+                this.hoverOn = this.hoverOn.bind(this);
+                this.hoverOff = this.hoverOff.bind(this);
+            }
+            hoverOn(){
+                this.setState({hover : true});
+            }
+
+            hoverOff(){
+                this.setState({hover:false});
             }
 
             render(){
-                return <a id={this.props.searcher+':'+this.props.id} href="#" className="list-group-item">                           
-                                {this.props.value}
+                let liStyle= {
+                    padding:'4px 16px'
+                };
+                return <a
+                           href="#"  
+                           style={liStyle} 
+                           id={this.props.searcher+':'+this.props.id} 
+                           className="list-group-item"
+                           onMouseEnter={this.hoverOn}
+                           onMouseLeave={this.hoverOff}
+                           >                           
+                               {this.props.value}
                         </a>;             
             }
                 
@@ -108,8 +131,11 @@ module.exports = {
             render(){
                 const items = this.props.items;
                 let me = this;
-                const searchItems = items.map((item) =>
-                    <SearchItem key={item.id.toString()} id={item.id.toString()} searcher={me.props.searcher} value={item.title}/>
+                const searchItems = items.map((item,index) =>
+                    <SearchItem key={index+':'+ me.props.searcher+':'+item.id} 
+                                id={item.id.toString()} 
+                                searcher={me.props.searcher} 
+                                value={item.title}/>
                 );
 
                 
@@ -117,6 +143,44 @@ module.exports = {
                 return (
                     <div onClick={this.props.onAdd} className="list-group">{searchItems}</div>
                 );
+            }
+        }
+
+        class SearchersList extends React.Component{
+            constructor(props){
+                super(props);
+                this.state = {
+                    searchers: this.props.searchers
+                }
+            }
+            render(){
+                const searchers = this.props.searchers;
+                const list = searchers.map(searcher => {
+                    return <Searcher key={searcher}
+                                     searcher={searcher}   
+                    />;
+                });
+                return <div className="list-group">{list}</div>;
+            }
+        }
+
+        class Searcher extends React.Component{
+            constructor(props){
+                super(props);
+            }
+
+            render(){
+                let liStyle = {
+                    padding : '4px 16px'
+                };
+                return <a
+                           href="#"  
+                           style={liStyle} 
+                           id={this.props.searcher} 
+                           className="list-group-item"
+                           >                           
+                               {this.props.searcher}
+                        </a>; 
             }
         }
 
@@ -132,6 +196,7 @@ module.exports = {
                     searchResults: {},
                     searchReady: false, 
                     searchDetailReady: false,
+                    reset: true,
                     searchRes: <div></div>
                 };
 
@@ -141,15 +206,28 @@ module.exports = {
                 this.handleChange = this.handleChange.bind(this);
                 this.handleClick = this.handleClick.bind(this);
                 this.handleSearcherClick = this.handleSearcherClick.bind(this);
+                this.selectSearcher = this.selectSearcher.bind(this);
+            }
+
+            reset(){
+                this.setState({
+                    reset : true
+                });
+            }
+
+            renderListOfSearchers(){
+                let searcherNames = Object.keys(this.searchers);
+                return <SearchersList searchers={searcherNames}/>;
             }
 
             handleSearcherClick(e){
-                this.setState({currentSearcherName : ''});
-                currentSearcher = {};
-                this.doSearch(currentSearcher, this.state.searchTerm);
-                /*
-                    TODO: trigger onChange event, 
-                */
+                this.setState({
+                    currentSearcherName : '',
+                    searchTerm: ''
+                  //  reset : true
+                });
+                this.doSearch('', '');
+                
             }
 
             handleClick(e){
@@ -175,64 +253,56 @@ module.exports = {
 
             }
 
+            selectSearcher(e){ 
+                var me = this; //console.log(me);
+               // console.log(e.target.id);
+                let _searcher = e.target.id.split(':')[0];
+               // let searcher = _searchers[_searcher]['searcher']; console.log(searcher);
+                let searcher = {}; 
+                searcher[_searcher] = _searchers[_searcher];
+                me.setState({currentSearcherName : _searcher});
+                me.doSearch(_searcher, me.state.searchTerm);
+            }
+
             handleChange(e){
                 var me = this;
                 let val = e.target.value; 
                 let _res = {}; //Object.assign({}, me.state.searchResults);
-                /* 
-                    call the currentSearcher if it has been selected by the user, otherwise
-                    call all searchers.
-                */
                 me.setState({searchTerm : val});
                 let currentSearchers = {};
-                if(Object.keys(currentSearcher).length > 0){ //console.log('greater than 0')
+                if(this.state.currentSearcherName){
+                    currentSearcher[this.state.currentSearcherName] = this.searchers[this.state.currentSearcherName];
+                }
+                if(Object.keys(currentSearcher).length > 0){
                     currentSearchers = currentSearcher;
-                    //console.log(currentSearchers);
-                }else{ //console.log('equal to 0')
+                }else{
                     currentSearchers = me.searchers;
                 }
-
-                me.doSearch(currentSearchers, val);
+                me.doSearch(this.state.currentSearcherName, val);
             }
 
-            doSearch(_searchers, _searchTerm){
-                var me = this;// console.log('searchTerm:',_searchTerm);
-                let _res = {};
-                Object.keys(_searchers).map((key) => { //console.log('searcher =>', _searchers[key]['searcher']);
-                _searchers[key]['searcher'].search(_searchTerm).then(function(fulfilled){
-                    _res[key] = fulfilled;  //console.log(fulfilled);
-                    me.setState({searchResults : _res});
-                    me.setState({searchReady: true});
-                    });
-                   // console.log(me.state.searchResults);
-                })
-            }
-
-            handleChange1(e){
-                var me = this;
-                let val = e.target.value; 
-                let _res = Object.assign({}, me.state.searchResults);
-                /* 
-                    call the currentSearcher if it has been selected by the user, otherwise
-                    call all searchers.
-                */
+            doSearch(searcherName, _searchTerm){ 
                 let currentSearchers = {};
-                if(Object.keys(currentSearcher).length > 0){ //console.log('greater than 0')
-                    currentSearchers = currentSearcher;
-                    //console.log(currentSearchers);
-                }else{ //console.log('equal to 0')
-                    currentSearchers = me.searchers;
+               
+
+                if(searcherName === ''){ 
+                    currentSearchers = this.searchers;
+                }else{ 
+                    currentSearchers[searcherName] = this.searchers[searcherName];
                 }
-               Object.keys(currentSearchers).map((key) => { //console.log('searcher =>', key);
-                   currentSearchers[key]['searcher'].search(val).then(function(fulfilled){
-                    _res[key] = fulfilled;  //console.log(fulfilled);
+                this.setState({searchResults:{}});
+                var me = this;
+                let _res = {};
+                Object.keys(currentSearchers).map((key) => {
+                currentSearchers[key]['searcher'].search(_searchTerm).then(function(fulfilled){
+                    _res[key] = fulfilled;
                     me.setState({searchResults : _res});
                     me.setState({searchReady: true});
+                    me.setState({reset: false});
                     });
                 })
             }
 
-            
             /**
              *
              * @returns {XML}
@@ -246,10 +316,25 @@ module.exports = {
                 if(this.state.searchReady){
                    
                     let _keys = Object.keys(this.state.searchResults);
+                    let _length = _keys.length;
+                    
+                    let hitsList1 = _keys.map(key => { 
+                        let temp = [{id:'all',title:this.searchers[key]['title']}];
+                        return <SearchList items={temp} searcher={key} onAdd={this.selectSearcher}/>;
+                        
+                    })
+                    /* let dawaRes = <SearchList items={this.state.searchResults['dawa'].slice(0,10)}
+                                              searcher= 'dawa'
+                                              onAdd={this.handleClick}
+                                    />;   */          
                     let searchRes1 = _keys.map((key) => {
+                           let _items = _length == 1 ? this.state.searchResults[key] : this.state.searchResults[key].slice(0,5); 
+                           if(_length == 1){
+                               hitsList1 = '';
+                           }
                            let t = <div>
-                                <h3>{this.searchers[key]['title']}</h3>
-                                <SearchList items={this.state.searchResults[key]}
+                                <h5>{this.searchers[key]['title']}</h5>
+                                <SearchList items={_items}
                                             searcher = {key}
                                             onAdd={this.handleClick}
                                 />
@@ -257,7 +342,14 @@ module.exports = {
                             return t;
                         });
                     
-                    searchRes = <div>{searchRes1}</div>;
+                    if(this.state.reset){
+                        searchRes = <div></div>;
+                    }else{
+                        searchRes = <div>
+                                        <div>{hitsList1}</div>
+                                        <div>{searchRes1}</div>
+                                    </div>;
+                    }
                     
                 }
 
@@ -287,7 +379,6 @@ module.exports = {
                                     </div>
 
                                 </div>
-                                
                                 
                                 {searchRes}
 

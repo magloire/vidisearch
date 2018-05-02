@@ -20,6 +20,8 @@ var exId = "planSearch";
 
 var config = require('../../../config/config.js');
 
+var mainSearch = require('../../mainSearch/browser/index.js');
+
 
 class SearchItem extends React.Component{
     constructor(props){
@@ -27,7 +29,10 @@ class SearchItem extends React.Component{
     }
 
     render(){
-        return <a id={this.props.searcher+':'+this.props.value} href="#" className="list-group-item">                           
+        let liStyle= {
+            padding:'4px 16px'
+        };
+        return <a style={liStyle} id={this.props.searcher+':'+this.props.value} href="#" className="list-group-item">                           
                         {this.props.value}
                 </a>;             
     }
@@ -81,7 +86,11 @@ module.exports = {
     },
 
     init: function(){
-
+        let me = this;
+         mainSearch.registerSearcher({
+            key: 'plan',
+            obj: {'searcher': this,'title':'Lokalplaner'}
+        }); 
     },
 
 

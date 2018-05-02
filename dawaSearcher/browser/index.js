@@ -27,6 +27,8 @@ var backboneEvents;
 
 var config = require('../../../config/config.js');
 
+var mainSearch = require('../../mainSearch/browser/index.js');
+
 var crss = {
     "from" : "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs",
     "to"   : "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
@@ -38,7 +40,10 @@ class AdresseItem extends React.Component{
     }
 
     render(){
-       return <a id={this.props.hrf} href="#" className="list-group-item">
+        let liStyle= {
+            padding:'4px 16px'
+        }; 
+       return <a id={this.props.hrf} style={liStyle} href="#" className="list-group-item">
             {this.props.value}
         </a>
     }
@@ -93,7 +98,11 @@ module.exports = {
     },
 
     init: function(){
-
+        let me = this;
+        mainSearch.registerSearcher({
+            key: 'dawa',
+            obj: {'searcher': this,'title':'Adresser'}
+        });
     },
     test: function(){
         console.log('hello from dawaSearcher');

@@ -27,6 +27,8 @@ var backboneEvents;
 
 var config = require('../../../config/config.js');
 
+var mainSearch = require('../../mainSearch/browser/index.js');
+
 var crss = {
     "from" : "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs",
     "to"   : "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"
@@ -40,7 +42,10 @@ class SearchItem extends React.Component{
     }
 
     render(){
-        return <a id={this.props.searcher+':'+this.props.value} href="#" className="list-group-item">                           
+        let liStyle= {
+            padding:'4px 16px'
+        };
+        return <a style={liStyle} id={this.props.searcher+':'+this.props.value} href="#" className="list-group-item">                           
                         {this.props.value}
                 </a>;             
     }
@@ -95,7 +100,11 @@ module.exports = {
     },
 
     init: function(){
-
+        let me = this;
+        mainSearch.registerSearcher({
+            key: 'matrikel',
+            obj: {'searcher': this,'title':'Matrikler'}
+        });
     },
 
     test: function(){
@@ -105,10 +114,10 @@ module.exports = {
         if(!searchTerm){
             searchTerm = "a b c d e f g h i j k l m 1 2 3 4 5 6";
         }
-        let url = "https://kortforsyningen.kms.dk/Geosearch?service=GEO&limit=20&resources=matrikelnumre"+
+        let url = "https://kortforsyningen.kms.dk/Geosearch?service=GEO&limit=100&resources=matrikelnumre"+
                    "&area=muncode0173%2Cmuncode0157%2Cmuncode0230%2Cmuncode0159%2Cmuncode0151%2Cmuncode0163"+
                    "&search="+ searchTerm +
-                   "&login=xxxx&password=xxxx";
+                   "&login=magloire&password=Kort_1234";
 
         let me = this;           
         return new Promise(function(resolve, reject){
