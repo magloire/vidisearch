@@ -52,6 +52,7 @@ module.exports = {
      * }
      */
     registerSearcher: function(searcher){
+        console.log(searcher['key']);
         _searchers[searcher['key']] = searcher['obj'];
     },
 
@@ -218,7 +219,13 @@ module.exports = {
             }
 
             renderListOfSearchers(){
-                let searcherNames = Object.keys(this.searchers);
+                let searcherNames = Object.keys(_searchers); 
+                let searchLen = Object.keys(this.state.searchResults).length;
+                if(searchLen > 0){ console.log('searchresults > 0');
+                    searcherNames = Object.keys(this.state.searchResults);
+                }
+                console.log('searchers => ');
+                console.log(searcherNames);
                 return <SearchersList searchers={searcherNames}
                                       onAdd={this.selectSearcher}  
                 />;
@@ -265,7 +272,7 @@ module.exports = {
             selectSearcher(e){ 
                 var me = this; //console.log(me);
                // console.log(e.target.id);
-                let _searcher = e.target.id; console.log('searcher selected : ', _searcher);
+                let _searcher = e.target.id; //console.log('searcher selected : ', _searcher);
                // let searcher = _searchers[_searcher]['searcher']; console.log(searcher);
                 let searcher = {}; 
                 searcher[_searcher] = _searchers[_searcher];
@@ -310,6 +317,10 @@ module.exports = {
                     me.setState({reset: false});
                     });
                 })
+            }
+
+            noResults(){ console.log('entered no results')
+                return this.state.searchReady == false && this.state.searchDetailReady == false;
             }
 
             /**
@@ -363,6 +374,7 @@ module.exports = {
                 }
 
                 if(this.state.currentSearcherName){
+                    let text = this.searchers[this.state.currentSearcherName]['title'];
                     searcherButton = <button type="button" onClick={this.handleSearcherClick} className="btn btn-info">
                                         {this.state.currentSearcherName} <span className="glyphicon glyphicon-remove"></span>
                                     </button>
@@ -401,7 +413,7 @@ module.exports = {
                 let searcherNames = Object.keys(this.state.searchResults);
                 let _length = searcherNames.length;
                 if(_length == 0) return [];
-                let comps = searcherNames.map(name => { console.log('key to render : ', name);
+                let comps = searcherNames.map(name => { 
                     let items = _length == 1 ? this.state.searchResults[name] : this.state.searchResults[name].slice(0,5);    
                     let title = _length == 1 ? '' :<h5>{this.searchers[name]['title']}</h5>; 
                     let list =  <div>
@@ -433,13 +445,23 @@ module.exports = {
                 let searchRes = this.state.searchRes;
                 if(this.state.searchReady){
                     let listOfSearchers = (this.state.currentSearcherName)? '' : this.renderListOfSearchers();
+
                     let comps = this.getComponentsToRender();
                     console.log('components : ',comps.length);
                     searchRes = <div className="res">
                                         {listOfSearchers}
                                         {comps}
                                     </div>;
+                }else{
+                    searchRes = <div className="res">
+                                    {this.renderListOfSearchers()}
+                                </div>;
                 }
+                /* if(this.noResults()){ console.log('noResults() is true');
+                    searchRes = <div className="res">
+                                    {this.renderListOfSearchers()}
+                                </div>;
+                } */
                 let searcherButton = '';
                 if(this.state.currentSearcherName){
                     searcherButton = <button type="button" onClick={this.handleSearcherClick} className="btn btn-info">
