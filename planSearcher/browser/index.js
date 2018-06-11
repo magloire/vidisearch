@@ -18,9 +18,9 @@ var mapObj;
 
 var exId = "planSearch";
 
-var config = require('../../../config/config.js');
+var config = require('../../../../config/config.js');
 
-var mainSearch = require('../../mainSearch/browser/index.js');
+var mainSearch;
 
 
 class SearchItem extends React.Component{
@@ -82,15 +82,16 @@ module.exports = {
         cloud = o.cloud;
         utils = o.utils;
         mapObj = cloud.get().map;
+        let me = this;
+        mainSearch = o.extensions.mainSearch.index;
+         mainSearch.registerSearcher({
+            key: 'Lokalplaner',
+            obj: {'searcher': this,'title':'Lokalplaner'}
+        }); 
 
     },
 
     init: function(){
-        let me = this;
-         mainSearch.registerSearcher({
-            key: 'plan',
-            obj: {'searcher': this,'title':'Lokalplaner'}
-        }); 
     },
 
 
