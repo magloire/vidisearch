@@ -95,14 +95,16 @@ module.exports = {
         backboneEvents = o.backboneEvents;
         mapObj = cloud.get().map;
 
-    },
-
-    init: function(){
         let me = this;
         mainSearch.registerSearcher({
             key: 'dawa',
             obj: {'searcher': this,'title':'Adresser'}
         });
+
+    },
+
+    init: function(){
+
     },
     test: function(){
         console.log('hello from dawaSearcher');
@@ -145,6 +147,7 @@ module.exports = {
                     return i.tekst;
                 });
               //  console.log(_res);
+              
                 let comp = <div>
                     <h3>Adresser</h3>
                     <AdresseList items={res}/>
