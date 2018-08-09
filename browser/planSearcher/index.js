@@ -7,7 +7,7 @@ var React = require('react');;
 
 var ReactDOM = require('react-dom');
 
-
+import Business from '@material-ui/icons/Business';
 var cloud;
 
 var layerGroup = L.layerGroup();
@@ -18,9 +18,9 @@ var mapObj;
 
 var exId = "planSearch";
 
-var config = require('../../../config/config.js');
+var config = require('../../../../config/config.js');
 
-var mainSearch = require('../../mainSearch/browser/index.js');
+var mainSearch;
 
 
 class SearchItem extends React.Component{
@@ -82,15 +82,16 @@ module.exports = {
         cloud = o.cloud;
         utils = o.utils;
         mapObj = cloud.get().map;
+        mainSearch = o.extensions.mainSearch.index;
 
+         mainSearch.registerSearcher({
+           key: 'Lokalplaner',
+           obj: {'searcher': this,'title':'Lokalplaner', 'icon':<Business/>}
+       });  
     },
 
     init: function(){
         let me = this;
-         mainSearch.registerSearcher({
-            key: 'plan',
-            obj: {'searcher': this,'title':'Lokalplaner'}
-        }); 
     },
 
 
@@ -113,10 +114,13 @@ module.exports = {
             $.post(url, query,function(data){
                 let res = data.hits.hits.map((item) => {
                     let it = item['_source']['properties']; 
-                    return {'title': it.plannavn, 'id': it.planid};
+                    return {'title': it.plannavn, 
+                            'id': it.planid, 
+                            'icon': <Business/>
+                        };
                 });
                 resolve(res);
-                },'json');
+                },'json'); 
         });
         
     },
