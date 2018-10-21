@@ -143,7 +143,6 @@ module.exports = {
                 });
     
                 layerGroup.clearLayers();
-                console.log(layer);
                 layerGroup.addLayer(layer).addTo(mapObj);
                 mapObj.fitBounds(layer.getBounds());
                let comp = <div>
@@ -160,5 +159,38 @@ module.exports = {
             })
         });
      //   console.log(searchTerm);
+    },
+
+    handleMouseOver: function(s){
+        console.log('plan mouseover');
+        let url = `https://ballerup.mapcentia.com/api/v1/sql/collector?q=SELECT plannr, plannavn, doklink, anvendelsegenerel, 
+                   the_geom from snit_plansearch.lokalplan_geom where planid =${s}&srs=4326`;
+            return new Promise(function(resolve, reject){
+                $.getJSON(url,function(data){
+                    let geom = data.features[0].geometry;
+                    console.log(geom);
+                    let properties = data.features[0].properties;
+                    let layer = L.geoJson(geom,{
+                        "color": "blue",
+                        "weight": 1,
+                        "opacity": 1,
+                        "fillOpacity": 0.1,
+                        "dashArray": '5,3'
+                    });
+        
+                    layerGroup.clearLayers();
+                    layerGroup.addLayer(layer).addTo(mapObj);
+                    mapObj.fitBounds(layer.getBounds());
+                    console.log('plan mouseover');
+                resolve('hello');
+            })
+        })
+    },
+
+    handleMouseOut: function(s){
+        return new Promise(function(resolve, reject){
+            console.log(s);
+            resolve('hello');
+        })
     }
 }

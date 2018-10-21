@@ -167,5 +167,38 @@ module.exports = {
 
             resolve(comp);
         });
+    },
+
+    handleMouseOver: function(s){
+        return new Promise(function(resolve, reject){
+            console.log(s);
+            let wkt = matrWkt[s];
+            let geojson = wktParser.parse(wkt);
+            geojson = JSON.parse(JSON.stringify(geojson)); 
+            geojson = reproject.toWgs84(geojson, "from", crss);
+            let myLayer = L.geoJson(geojson,{
+                "color": "blue",
+                "weight": 1,
+                "opacity": 1,
+                "fillOpacity": 0.1,
+                "dashArray": '5,3'
+            });
+
+            layerGroup.clearLayers();
+            layerGroup.addLayer(myLayer).addTo(mapObj);
+            
+            /*  hack in order to center the map...   */ 
+            let point = geojson.coordinates[0][0];
+                point = [point[1],point[0]];
+            mapObj.setView(point, 16);
+            resolve('hello');
+        })
+    },
+
+    handleMouseOut: function(s){
+        return new Promise(function(resolve, reject){
+            console.log(s);
+            resolve('hello');
+        })
     }
 }

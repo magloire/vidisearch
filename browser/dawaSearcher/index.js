@@ -193,5 +193,17 @@ module.exports = {
                 resolve(comp);
             });
          })
+    },
+
+    handleMouseOver: function(s){
+        return new Promise(function(resolve, reject){
+            resolve('hello');
+        })
+    },
+
+    handleMouseOut: function(s){
+        return new Promise(function(resolve, reject){
+            resolve('hello');
+        })
     }
 }

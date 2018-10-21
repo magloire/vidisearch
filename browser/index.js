@@ -79,7 +79,9 @@ module.exports = {
                                 id={item.id.toString()} 
                                 searcher={me.props.searcher} 
                                 value={item.title}
-                               onClick={(e) => this.props.onAdd(s+':'+item.id.toString())}
+                                onClick={(e) => this.props.onAdd(s+':'+item.id.toString())}
+                                onMouseOver={(e) => this.props.onMouseOver(s+':'+item.id.toString())}
+                                onMouseOut={this.props.onMouseOut(s+':'+item.id.toString())}
                                 >
                         <ListItemIcon>
                             {_searchers[s]['icon'] ? _searchers[s]['icon'] : <PinDrop/> }
@@ -154,9 +156,36 @@ module.exports = {
                
                 this.handleChange = this.handleChange.bind(this);
                 this.handleClick = this.handleClick.bind(this);
+                this.handleMouseOver = this.handleMouseOver.bind(this);
+                this.handleMouseOut = this.handleMouseOut.bind(this);
                 this.handleSearcherClick = this.handleSearcherClick.bind(this);
                 this.selectSearcher = this.selectSearcher.bind(this);
                 this.clearSearchBox = this.clearSearchBox.bind(this);
+               // this.delayedCall = _.d
+            }
+
+            componentWillMount() {
+                this.delayedCallback = _.debounce(function (e) {
+                    // `e.target` is accessible now
+                    console.log(e.target);
+                    var me = this;
+                    let val = e.target.value;// console.log('value = ', val);
+                    let _res = {}; //Object.assign({}, me.state.searchResults);
+                    //me.setState({searchTerm: val});
+                    me.setState((prevState, props) => ({
+                        searchTerm : val
+                    }));
+                    let currentSearchers = {};
+                    if (this.state.currentSearcherName) {
+                        currentSearcher[this.state.currentSearcherName] = this.searchers[this.state.currentSearcherName];
+                    }
+                    if (Object.keys(currentSearcher).length > 0) {
+                        currentSearchers = currentSearcher;
+                    } else {
+                        currentSearchers = me.searchers;
+                    }
+                    me.doSearch(this.state.currentSearcherName, val);
+                }, 2);
             }
 
             reset(){
@@ -204,6 +233,57 @@ module.exports = {
                 
             }
 
+            handleMouseOver(id,e) {
+                let me = this;
+                let _searcher, searchTerm;
+                [_searcher, searchTerm] = id.split(':');
+                let searcher = this.searchers[_searcher]['searcher'];
+                /*
+                    set the currentSearcher. From now on, only this searcher will be called
+                    when the user writes in the input box.
+                */
+                // console.log('currentSEarhcer :' + _searcher);
+                //me.setState({currentSearcherName: _searcher});
+
+                currentSearcher[_searcher] = this.searchers[_searcher];
+                if (searcher.handleMouseOver !== undefined) {
+                    searcher.handleMouseOver(searchTerm).then(
+                        (res) => {
+
+                        },
+                        (res) => {
+                            console.error(res)
+                        }
+                    );
+
+                }
+            }
+
+            handleMouseOut(id,e) {
+                let me = this;
+                let _searcher, searchTerm;
+                [_searcher, searchTerm] = id.split(':');
+                let searcher = this.searchers[_searcher]['searcher'];
+                /*
+                    set the currentSearcher. From now on, only this searcher will be called
+                    when the user writes in the input box.
+                */
+                // console.log('currentSEarhcer :' + _searcher);
+                //me.setState({currentSearcherName: _searcher});
+
+                currentSearcher[_searcher] = this.searchers[_searcher];
+                if (searcher.handleMouseOut !== undefined) {
+                    searcher.handleMouseOut(searchTerm).then(
+                        (res) => {
+
+                        },
+                        (res) => {
+                            console.error(res)
+                        }
+                    );
+
+                }
+            }
 
             handleClick(id, e){
                 let me = this;
@@ -242,6 +322,7 @@ module.exports = {
             }
 
             handleChange(e){
+                
                 var me = this;
                 let val = e.target.value; 
                 let _res = {}; 
@@ -256,6 +337,10 @@ module.exports = {
                     currentSearchers = me.searchers;
                 }
                 me.doSearch(this.state.currentSearcherName, val);
+                /*
+                e.persist();
+                this.delayedCallback(e);
+                */
             }
 
             doSearch(searcherName, _searchTerm){ 
@@ -317,13 +402,17 @@ module.exports = {
                     let items = this.state.searchResults[name]; 
                     comps = <SearchList items={items} 
                                 searcher={name}
-                                onAdd={this.handleClick}  
+                                onAdd={this.handleClick}
+                                onMouseOver={this.handleMouseOver}
+                                onMouseOut={this.handleMouseOut}  
                             />;
                 }else{
                     let items = this.state.searchResults['Adresser'] ? this.state.searchResults['Adresser'].slice(0,5) : [];
                     comps = <SearchList items={items} 
                                 searcher="Adresser"
-                                onAdd={this.handleClick}  
+                                onAdd={this.handleClick}
+                                onMouseOver={this.handleMouseOver}
+                                onMouseOut={this.handleMouseOut}    
                             />;
                 }
                
@@ -381,7 +470,9 @@ module.exports = {
                                     <Input
                                         id="search-field"
                                         type="text"
-                                        
+                                        inputProps={
+                                            {value:this.state.searchTerm}
+                                        }
                                         value={this.state.searchTerm}
                                         onChange={this.handleChange}
                                         
